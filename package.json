@@ -1,0 +1,17 @@
+{
+	"name": "@tinkink/imap-server",
+	"description": "Node.js IMAP server module",
+	"version": "1.0.0-alpha.1",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dependencies": {
+		"wildduck": "^1.39.8"
+	},
+	"devDependencies": {
+		"@types/node": "^20.4.5",
+		"eslint": "^8.46.0",
+		"ts-node": "^10.9.1",
+		"typescript": "^5.1.6"
+	}
+}
