@@ -29,7 +29,7 @@ export interface ImapServerOptions {
         password: string;
     }, session: any, callback: (err: Error|null, data?: Record<string, any>) => void) => void,
     onError?: (err: Error) => void,
-
+    onSelect?: (path: string, session: ImapServerSession, callback: (err: Error | null, mailboxData?: Mailbox) => void) => void,
 }
 
 export interface ImapServerSession {
@@ -39,6 +39,13 @@ export interface ImapServerSession {
     clientHostname: string;
     writeStream: WritableStream;
     socket: Socket;
+}
+
+export interface Mailbox {
+    _id: string;
+    uidList: number[];
+    modifyIndex?: number;
+    uidValidity?: number;
 }
 
 
@@ -60,7 +67,6 @@ const defaultOptions: ImapServerOptions = {
 
     maxMessage: 25 * 1024 * 1024,
     enableCompression: true,
-
 
 };
 
@@ -100,6 +106,9 @@ export class ImapServer {
         }
         if (options.onAuth) {
             this.server.onAuth = options.onAuth;
+        }
+        if (options.onSelect) {
+            this.server.onOpen = options.onSelect;
         }
 
         this.server.listen(options.port, options.host, () => {

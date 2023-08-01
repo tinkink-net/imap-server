@@ -5,7 +5,7 @@ const server = new ImapServer({
         console.log('error!!', err, typeof err);
     },
     onAuth: (login, session, callback) => {
-        console.log('onAuth', login);
+        console.log('onAuth', login, session);
         if (login.username === 'a' && login.password === 'b') {
             callback(null, {
                 user: {
@@ -21,6 +21,13 @@ const server = new ImapServer({
     },
     onConnect: (session) => {
         console.log(`onConnect, id: ${session.id}, ip: ${session.remoteAddress}`);
+    },
+    onSelect(path, session, callback) {
+        console.log('onSelect', path, session.id);
+        callback(null, {
+            _id: '1',
+            uidList: [1, 2, 3],
+        });
     },
 });
 
