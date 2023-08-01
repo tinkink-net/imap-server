@@ -1,6 +1,7 @@
 import './dirtyTricks';
 // @ts-ignore
 import { IMAPServer } from 'wildduck/imap-core';
+import { MemoryNotifier } from './MemoryNotifier'
 
 export interface ImapServerOptions {
     name?: string;
@@ -22,7 +23,10 @@ export interface ImapServerOptions {
 
     onConnect?: () => void,
     onClose?: () => void,
-    onAuth?: () => void,
+    onAuth?: (login: {
+        username: string;
+        password: string;
+    }, session: any, callback: (err: Error|null, data?: Record<string, any>) => void) => void,
     onError?: (err: Error) => void,
 
 }
@@ -58,20 +62,20 @@ export class ImapServer {
             options = { ...defaultOptions, ...options };
         }
         this.server = new IMAPServer(options);
-        this.server.on('error', (err: any) => {
-            console.log('error!!', err, typeof err);
-        });
+        this.server.notifier = new MemoryNotifier({});
+
+        if (options.onError) {
+            this.server.on('error', options.onError);
+        }
+        if (options.onClose) {
+            this.server.on('close', options.onClose);
+        }
+        if (options.onAuth) {
+            this.server.onAuth = options.onAuth;
+        }
+
         this.server.listen(options.port, options.host, () => {
             console.log(`IMAP server listening on port ${options!.port}`);
         });
-    }
-    onConnect(callback: (...args: any[]) => void) {
-        this.server.on('connect', callback);
-    }
-    onAuth(callback: (...args: any[]) => void) {
-        this.server.on('auth', callback);
-    }
-    onClose(callback: (...args: any[]) => void) {
-        this.server.on('close', callback);
     }
 }
