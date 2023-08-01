@@ -69,7 +69,6 @@ export class ImapServer {
             this.server.on('error', options.onError);
         }
         if (options.onConnect) {
-            // console.log(options.onConnect, this.server.server);
             this.server.server.on('connection', options.onConnect);
         }
         if (options.onClose) {
@@ -82,5 +81,8 @@ export class ImapServer {
         this.server.listen(options.port, options.host, () => {
             console.log(`IMAP server listening on port ${options!.port}`);
         });
+    }
+    close(callback?: () => void) {
+        this.server.close(callback);
     }
 }

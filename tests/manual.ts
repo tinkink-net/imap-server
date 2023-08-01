@@ -23,3 +23,9 @@ const server = new ImapServer({
         console.log('onConnect, ip:', socket.remoteAddress);
     },
 });
+
+/* setTimeout(() => {
+    server.close(() => {
+        console.log('server closed');
+    });
+}, 2000); */
