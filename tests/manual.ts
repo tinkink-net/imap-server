@@ -19,7 +19,7 @@ const server = new ImapServer({
     onClose: () => {
         console.log('onClose');
     },
-    onConnect: () => {
-        console.log('onConnect');
+    onConnect: (socket) => {
+        console.log('onConnect, ip:', socket.remoteAddress);
     },
 });

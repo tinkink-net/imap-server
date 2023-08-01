@@ -2,6 +2,7 @@ import './dirtyTricks';
 // @ts-ignore
 import { IMAPServer } from 'wildduck/imap-core';
 import { MemoryNotifier } from './MemoryNotifier'
+import { type Socket } from 'node:net';
 
 export interface ImapServerOptions {
     name?: string;
@@ -21,7 +22,7 @@ export interface ImapServerOptions {
     maxMessage?: number;
     enableCompression?: boolean;
 
-    onConnect?: () => void,
+    onConnect?: (socket: Socket) => void,
     onClose?: () => void,
     onAuth?: (login: {
         username: string;
@@ -66,6 +67,10 @@ export class ImapServer {
 
         if (options.onError) {
             this.server.on('error', options.onError);
+        }
+        if (options.onConnect) {
+            // console.log(options.onConnect, this.server.server);
+            this.server.server.on('connection', options.onConnect);
         }
         if (options.onClose) {
             this.server.on('close', options.onClose);
