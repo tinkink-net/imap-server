@@ -22,7 +22,7 @@ export interface ImapServerOptions {
     maxMessage?: number;
     enableCompression?: boolean;
 
-    onConnect?: (socket: Socket) => void,
+    onConnect?: (session: ImapServerSession) => void,
     onClose?: () => void,
     onAuth?: (login: {
         username: string;
@@ -31,6 +31,16 @@ export interface ImapServerOptions {
     onError?: (err: Error) => void,
 
 }
+
+export interface ImapServerSession {
+    id: string;
+    selected: boolean;
+    remoteAddress: string;
+    clientHostname: string;
+    writeStream: WritableStream;
+    socket: Socket;
+}
+
 
 const defaultOptions: ImapServerOptions = {
     name: 'Tinkink IMAP Server',
@@ -69,7 +79,21 @@ export class ImapServer {
             this.server.on('error', options.onError);
         }
         if (options.onConnect) {
-            this.server.server.on('connection', options.onConnect);
+            this.server.server.on('connection', (socket: Socket) => {
+                setTimeout(() => {
+                    let connection;
+                    for (const conn of this.server.connections) {
+                        if (conn._socket === socket) {
+                            connection = conn;
+                            break;
+                        }
+                    }
+                    if (!connection) {
+                        console.log('no connection found');
+                    }
+                    options!.onConnect?.(connection.session);
+                });
+            });
         }
         if (options.onClose) {
             this.server.on('close', options.onClose);
