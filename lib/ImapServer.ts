@@ -30,6 +30,7 @@ export interface ImapServerOptions {
     }, session: any, callback: (err: Error|null, data?: Record<string, any>) => void) => void,
     onError?: (err: Error) => void,
     onSelect?: (path: string, session: ImapServerSession, callback: (err: Error | null, mailboxData?: Mailbox) => void) => void,
+    onFetch?: (mailboxId: string, options: OnFetchOptions, session: ImapServerSession, callback: (err: Error | null, success: Boolean, info: Record<string, any>) => void) => void,
 }
 
 export interface ImapServerSession {
@@ -39,6 +40,57 @@ export interface ImapServerSession {
     clientHostname: string;
     writeStream: WritableStream;
     socket: Socket;
+    // todo: imap-connection.js:L804
+    formatResponse: (command: string, uid: number, data: any) => any;
+    getQueryResponse: (query: QueryItem[], message: Message) => Value[];
+}
+
+export interface MimeTree {
+    parsedHeader: {
+        'content-type'?: {
+            value: 'text/plain' | 'image/png' | 'image/jpeg' | 'multipart/mixed',
+            type: 'multipart' | 'text' | 'message' | 'application' | 'image';
+            subtype: 'rfc822' | 'plain' | 'octet-stream' | 'png' | 'jpeg' | 'mixed';
+            hasParams?: boolean;
+            params: {
+                [key: string]: string;
+            }
+        };
+        'content-id'?: string;
+        'content-disposition'?: string;
+        subject?: string;
+    };
+    size: number;
+    message?: MimeTree;
+    childNodes?: MimeTree[];
+    multipart?: 'mixed' | false;
+    boundary: string | false;
+    lineCount: number;
+    header: string[];
+    body: string;
+    text?: string;
+}
+
+export interface ValueLiteral {
+    type: string;
+    value: Value;
+    expectedLength: number;
+    startFrom: number;
+    maxLength: number;
+}
+export type Value = number | Date | ValueLiteral | any[];
+
+export interface FetchData {
+    query: QueryItem[];
+    values: Value[];
+}
+
+export interface Message {
+    uid: number;
+    flags: string[];
+    modseq: number;
+    idate: Date;
+    mimeTree: MimeTree;
 }
 
 export interface Mailbox {
@@ -46,6 +98,34 @@ export interface Mailbox {
     uidList: number[];
     modifyIndex?: number;
     uidValidity?: number;
+}
+
+export interface QueryItem {
+    original: {
+        partial: any[]
+    };
+    path?: string;
+    type?: string;
+    partial?: {
+        startFrom: number;
+        maxLength: number;
+    }
+    item: 'uid' | 'modseq' | 'flags' | 'internaldate' | 'bodystructure' | 'envelope' | 'rfc822' | 'rfc822.size' | 'rfc822.header' | 'rfc822.text' | 'body';
+    isLiteral: boolean;
+}
+
+export interface OnFetchOptions {
+    bodystructureExist: boolean;
+    rfc822sizeExist: boolean;
+    envelopeExist: boolean;
+    flagsExist: boolean;
+    idateExist: boolean;
+    metadataOnly: boolean;
+    markAsSeen: boolean;
+    messages: number[];
+    query: QueryItem[];
+    changedSince: number;
+    isUid: boolean;
 }
 
 
@@ -71,7 +151,7 @@ const defaultOptions: ImapServerOptions = {
 };
 
 export class ImapServer {
-    private server: IMAPServer;
+    server: IMAPServer;
     constructor(options?: ImapServerOptions) {
         if (!options) {
             options = defaultOptions;
@@ -110,10 +190,20 @@ export class ImapServer {
         if (options.onSelect) {
             this.server.onOpen = options.onSelect;
         }
+        if (options.onFetch) {
+            this.server.onFetch = options.onFetch.bind(this);
+        }
 
         this.server.listen(options.port, options.host, () => {
             console.log(`IMAP server listening on port ${options!.port}`);
         });
+    }
+    getConnection(session: ImapServerSession) {
+        for (const conn of this.server.connections) {
+            if (conn.session.id === session.id) {
+                return conn;
+            }
+        }
     }
     close(callback?: () => void) {
         this.server.close(callback);
