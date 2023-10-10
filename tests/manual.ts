@@ -22,7 +22,9 @@ const server = new ImapServer({
         console.log('onClose');
     },
     onConnect: (session) => {
-        console.log(`onConnect, id: ${session.id}, ip: ${session.remoteAddress}`);
+        console.log(
+            `onConnect, id: ${session.id}, ip: ${session.remoteAddress}`,
+        );
     },
     onSelect(path, session, callback) {
         console.log('onSelect', path, session.id);
@@ -203,122 +205,108 @@ const server = new ImapServer({
      *    }
      */
     onFetch: (mailbox, options, session, callback) => {
-        console.log('onFetch', mailbox, typeof mailbox, JSON.stringify(options, null, 2), session.id);
+        console.log(
+            'onFetch',
+            mailbox,
+            typeof mailbox,
+            JSON.stringify(options, null, 2),
+            session.id,
+        );
         // 1. getQuery from options.query
         const messageIds = options.messages;
-        for(const id of messageIds) {
-        // 2. get message
-        const message: Message = {
-            uid: id,
-            flags: ['\\Seen'],
-            modseq: id * 100,
-            idate: new Date('2023-10-07 15:00:00'),
-            // mimeTree: parseMimeTree(fs.readFileSync(__dirname + '/fixtures/ryan_finnie_mime_torture.eml')),
-            mimeTree: {
-                childNodes: [
-                    {
-                        header: ['Content-Type: text/plain'],
-                        parsedHeader: {
-                            'content-type': {
-                                value: 'text/plain',
-                                type: 'text',
-                                subtype: 'plain',
-                                params: {}
-                            }
+        for (const id of messageIds) {
+            // 2. get message
+            const message: Message = {
+                uid: id,
+                flags: ['\\Seen'],
+                modseq: id * 100,
+                idate: new Date('2023-10-07 15:00:00'),
+                // mimeTree: parseMimeTree(fs.readFileSync(__dirname + '/fixtures/ryan_finnie_mime_torture.eml')),
+                mimeTree: {
+                    childNodes: [
+                        {
+                            header: ['Content-Type: text/plain'],
+                            parsedHeader: {
+                                'content-type': {
+                                    value: 'text/plain',
+                                    type: 'text',
+                                    subtype: 'plain',
+                                    params: {},
+                                },
+                            },
+                            body: 'Hello world!',
+                            multipart: false,
+                            boundary: false,
+                            lineCount: 1,
+                            size: 12,
                         },
-                        body: 'Hello world!',
-                        multipart: false,
-                        boundary: false,
-                        lineCount: 1,
-                        size: 12
+                        {
+                            header: ['Content-Type: image/png'],
+                            parsedHeader: {
+                                'content-type': {
+                                    value: 'image/png',
+                                    type: 'image',
+                                    subtype: 'png',
+                                    params: {},
+                                },
+                            },
+                            body: 'BinaryContent',
+                            multipart: false,
+                            boundary: false,
+                            lineCount: 1,
+                            size: 13,
+                        },
+                    ],
+                    header: [
+                        'Subject: test' + id,
+                        'Content-type: multipart/mixed; boundary=abc',
+                    ],
+                    parsedHeader: {
+                        'content-type': {
+                            value: 'multipart/mixed',
+                            type: 'multipart',
+                            subtype: 'mixed',
+                            params: {
+                                boundary: 'abc',
+                            },
+                            hasParams: true,
+                        },
+                        subject: 'test' + id,
                     },
-                    {
-                        header: ['Content-Type: image/png'],
-                        parsedHeader: {
-                            'content-type': {
-                                value: 'image/png',
-                                type: 'image',
-                                subtype: 'png',
-                                params: {}
-                            }
-                        },
-                        body: 'BinaryContent',
-                        multipart: false,
-                        boundary: false,
-                        lineCount: 1,
-                        size: 13
-                    }
-                ],
-                header: ['Subject: test' + id, 'Content-type: multipart/mixed; boundary=abc'],
-                parsedHeader: {
-                    'content-type': {
-                        value: 'multipart/mixed',
-                        type: 'multipart',
-                        subtype: 'mixed',
-                        params: {
-                            boundary: 'abc'
-                        },
-                        hasParams: true
-                    },
-                    subject: 'test' + id
+                    body: '',
+                    multipart: 'mixed',
+                    boundary: 'abc',
+                    lineCount: 1,
+                    size: 0,
+                    text: '--abc\r\nHello world!\r\n--abc\r\nBinaryContent\r\n--abc--\r\n',
                 },
-                body: '',
-                multipart: 'mixed',
-                boundary: 'abc',
-                lineCount: 1,
-                size: 0,
-                text: '--abc\r\nHello world!\r\n--abc\r\nBinaryContent\r\n--abc--\r\n'
-            },
-        };
-        // 3. convert message to values
-        // todo
-        const values = session.getQueryResponse(options.query, message);
-        console.log('values:', values);
+            };
+            // 3. convert message to values
+            // if with body, values[0].type === 'stream'
+            const values = session.getQueryResponse(options.query, message);
+            console.log('values:', values);
 
-        // 4. formatResponse with { query, values }
-        const data = session.formatResponse('FETCH', id, {
-            query: options.query,
-            values,
-        });
+            // 4. formatResponse with { query, values }
+            const data = session.formatResponse('FETCH', id, {
+                query: options.query,
+                values,
+            });
 
-        console.log('data:', data);
-        let compiled;
-        if ((values[0] as ValueLiteral)?.type === 'stream') {
-            // with body
-            compiled = imapHandler.compileStream(data);
-        } else {
-            // only meta
-            compiled = { compiled: imapHandler.compiler(data) };
-        }
+            console.log('data:', data);
+            let compiled;
+            if ((values[0] as ValueLiteral)?.type === 'stream') {
+                // with body, it's a stream (PassThrough)
+                compiled = imapHandler.compileStream(data);
+            } else {
+                // only meta, it's a string (then wrap it in `compiled` property)
+                compiled = { compiled: imapHandler.compiler(data) };
+            }
 
-        console.log('compiled:', compiled);
+            console.log('compiled:', compiled);
 
-        // 5. write stream
-        // @ts-ignore
-        session.writeStream.write(compiled);
-        // @ts-ignore
-        /* session.writeStream.write({
-            compiled: Buffer.from(`* 1 FETCH (INTERNALDATE "2023-10-07T07:00:00.000Z" UID 1 FLAGS (\\Seen) RFC822.SIZE 506 BODY[HEADER.FIELDS (date subject from to cc message-id in-reply-to references content-type x-priority x-uniform-type-identifier x-universally-unique-identifier list-id list-unsubscribe bimi-indicator bimi-location x-bimi-indicator-hash authentication-results dkim-signature)] {506}\x0d
-Date: Wed, 29 Dec 2021 15:25:11 +0500
-Subject: Sample Email Subject
-From: Sender's Name <s@example.com>
-To: Receiver's Name <receiver@example.com>
-Cc: CC Recipient's Name <cc@example.com>
-Message-ID: <1234567890@example.com>
-In-Reply-To:
-References:
-Content-Type: multipart/alternative; boundary=boundary-example
-X-Priority:
-X-Uniform-Type-Identifier:
-X-Universally-Unique-Identifier:
-List-ID:
-List-Unsubscribe:
-BIMI-Indicator:
-BIMI-Location:
-X-BIMI-Indicator-Hash:
-Authentication-Results:
-DKIM-Signature:
-)`) }); */
+            // 5. write stream
+            // @ts-ignore
+            session.writeStream.write(compiled);
         }
 
         callback(null, true, {

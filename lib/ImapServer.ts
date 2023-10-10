@@ -1,7 +1,7 @@
 import './dirtyTricks';
 // @ts-ignore
 import { IMAPServer } from 'wildduck/imap-core';
-import { MemoryNotifier } from './MemoryNotifier'
+import { MemoryNotifier } from './MemoryNotifier';
 import { type Socket } from 'node:net';
 
 export interface ImapServerOptions {
@@ -22,15 +22,32 @@ export interface ImapServerOptions {
     maxMessage?: number;
     enableCompression?: boolean;
 
-    onConnect?: (session: ImapServerSession) => void,
-    onClose?: () => void,
-    onAuth?: (login: {
-        username: string;
-        password: string;
-    }, session: any, callback: (err: Error|null, data?: Record<string, any>) => void) => void,
-    onError?: (err: Error) => void,
-    onSelect?: (path: string, session: ImapServerSession, callback: (err: Error | null, mailboxData?: Mailbox) => void) => void,
-    onFetch?: (mailboxId: string, options: OnFetchOptions, session: ImapServerSession, callback: (err: Error | null, success: Boolean, info: Record<string, any>) => void) => void,
+    onConnect?: (session: ImapServerSession) => void;
+    onClose?: () => void;
+    onAuth?: (
+        login: {
+            username: string;
+            password: string;
+        },
+        session: any,
+        callback: (err: Error | null, data?: Record<string, any>) => void,
+    ) => void;
+    onError?: (err: Error) => void;
+    onSelect?: (
+        path: string,
+        session: ImapServerSession,
+        callback: (err: Error | null, mailboxData?: Mailbox) => void,
+    ) => void;
+    onFetch?: (
+        mailboxId: string,
+        options: OnFetchOptions,
+        session: ImapServerSession,
+        callback: (
+            err: Error | null,
+            success: boolean,
+            info: Record<string, any>,
+        ) => void,
+    ) => void;
 }
 
 export interface ImapServerSession {
@@ -48,13 +65,23 @@ export interface ImapServerSession {
 export interface MimeTree {
     parsedHeader: {
         'content-type'?: {
-            value: 'text/plain' | 'image/png' | 'image/jpeg' | 'multipart/mixed',
+            value:
+                | 'text/plain'
+                | 'image/png'
+                | 'image/jpeg'
+                | 'multipart/mixed';
             type: 'multipart' | 'text' | 'message' | 'application' | 'image';
-            subtype: 'rfc822' | 'plain' | 'octet-stream' | 'png' | 'jpeg' | 'mixed';
+            subtype:
+                | 'rfc822'
+                | 'plain'
+                | 'octet-stream'
+                | 'png'
+                | 'jpeg'
+                | 'mixed';
             hasParams?: boolean;
             params: {
                 [key: string]: string;
-            }
+            };
         };
         'content-id'?: string;
         'content-disposition'?: string;
@@ -102,15 +129,26 @@ export interface Mailbox {
 
 export interface QueryItem {
     original: {
-        partial: any[]
+        partial: any[];
     };
     path?: string;
     type?: string;
     partial?: {
         startFrom: number;
         maxLength: number;
-    }
-    item: 'uid' | 'modseq' | 'flags' | 'internaldate' | 'bodystructure' | 'envelope' | 'rfc822' | 'rfc822.size' | 'rfc822.header' | 'rfc822.text' | 'body';
+    };
+    item:
+        | 'uid'
+        | 'modseq'
+        | 'flags'
+        | 'internaldate'
+        | 'bodystructure'
+        | 'envelope'
+        | 'rfc822'
+        | 'rfc822.size'
+        | 'rfc822.header'
+        | 'rfc822.text'
+        | 'body';
     isLiteral: boolean;
 }
 
@@ -127,7 +165,6 @@ export interface OnFetchOptions {
     changedSince: number;
     isUid: boolean;
 }
-
 
 const defaultOptions: ImapServerOptions = {
     name: 'Tinkink IMAP Server',
@@ -147,7 +184,6 @@ const defaultOptions: ImapServerOptions = {
 
     maxMessage: 25 * 1024 * 1024,
     enableCompression: true,
-
 };
 
 export class ImapServer {
