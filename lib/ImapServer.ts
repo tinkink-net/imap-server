@@ -73,6 +73,12 @@ export interface ImapServerOptions {
             },
         ) => void,
     ) => void;
+    onExpunge?: (
+        mailbox: number,
+        update: Update,
+        session: ImapServerSession,
+        callback: (err: Error | null, data?: Error | string | boolean) => void,
+    ) => void;
 }
 
 export interface ImapServerSession {
@@ -208,6 +214,11 @@ export type Folder = string | FolderObject;
 export interface Update {
     destination: string;
     messages: number[];
+    isUid?: boolean;
+    silent?: boolean;
+    value?: string[];
+    unchangedSince?: number;
+    action?: 'set' | 'add' | 'remove';
 }
 
 const defaultOptions: ImapServerOptions = {
