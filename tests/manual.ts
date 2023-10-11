@@ -325,6 +325,18 @@ const server = new ImapServer({
             { path: 'Trash', flags: [], specialUse: '\\Trash' },
         ]);
     },
+    onMove(mailbox, update, session, callback) {
+        console.log('onMove', mailbox, update);
+        callback(null);
+    },
+    onCopy(mailbox, update, session, callback) {
+        console.log('onCopy', mailbox, update);
+        callback(null, true, {
+            uidValidity: 4,
+            sourceUid: update.messages,
+            destinationUid: [6],
+        });
+    },
 });
 
 /* setTimeout(() => {

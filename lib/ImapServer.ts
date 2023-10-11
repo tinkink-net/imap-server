@@ -53,6 +53,26 @@ export interface ImapServerOptions {
         session: ImapServerSession,
         callback: (err: Error | null, list: Folder[]) => void,
     ) => void;
+    onMove?: (
+        mailbox: number,
+        update: Update,
+        session: ImapServerSession,
+        callback: (err: Error | null, data?: any) => void,
+    ) => void;
+    onCopy?: (
+        mailbox: number,
+        update: Update,
+        session: ImapServerSession,
+        callback: (
+            err: Error | null,
+            success: boolean,
+            info: {
+                uidValidity: number;
+                sourceUid: number[];
+                destinationUid: number[];
+            },
+        ) => void,
+    ) => void;
 }
 
 export interface ImapServerSession {
@@ -185,6 +205,11 @@ export interface FolderObject {
 
 export type Folder = string | FolderObject;
 
+export interface Update {
+    destination: string;
+    messages: number[];
+}
+
 const defaultOptions: ImapServerOptions = {
     name: 'Tinkink IMAP Server',
     version: '1.0.0',
@@ -251,6 +276,20 @@ export class ImapServer {
         if (options.onList) {
             this.server.onList = options.onList;
             this.server.onLsub = options.onList;
+        }
+        if (options.onMove) {
+            this.server.onMove = options.onMove;
+        }
+        if (options.onCopy) {
+            this.server.onCopy = (
+                connection: any,
+                mailbox: number,
+                update: Update,
+                session: ImapServerSession,
+                callback: any,
+            ) => {
+                options!.onCopy!(mailbox, update, session, callback);
+            };
         }
 
         this.server.listen(options.port, options.host, () => {
