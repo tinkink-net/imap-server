@@ -315,6 +315,16 @@ const server = new ImapServer({
             },
         });
     },
+    onList: (query, session, callback) => {
+        console.log('onList', query);
+        callback(null, [
+            { path: 'Inbox', flags: [], specialUse: 'INBOX' },
+            { path: 'Drafts', flags: [], specialUse: '\\Drafts' },
+            { path: 'Sent', flags: [], specialUse: '\\Sent' },
+            { path: 'Junk', flags: [], specialUse: '\\Junk' },
+            { path: 'Trash', flags: [], specialUse: '\\Trash' },
+        ]);
+    },
 });
 
 /* setTimeout(() => {

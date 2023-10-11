@@ -48,6 +48,11 @@ export interface ImapServerOptions {
             info: Record<string, any>,
         ) => void,
     ) => void;
+    onList?: (
+        query: any,
+        session: ImapServerSession,
+        callback: (err: Error | null, list: Folder[]) => void,
+    ) => void;
 }
 
 export interface ImapServerSession {
@@ -166,6 +171,20 @@ export interface OnFetchOptions {
     isUid: boolean;
 }
 
+export interface FolderObject {
+    path: string;
+    flags: string[];
+    specialUse?:
+        | 'INBOX'
+        | '\\Sent'
+        | '\\Trash'
+        | '\\Junk'
+        | '\\Drafts'
+        | '\\Flagged';
+}
+
+export type Folder = string | FolderObject;
+
 const defaultOptions: ImapServerOptions = {
     name: 'Tinkink IMAP Server',
     version: '1.0.0',
@@ -228,6 +247,10 @@ export class ImapServer {
         }
         if (options.onFetch) {
             this.server.onFetch = options.onFetch.bind(this);
+        }
+        if (options.onList) {
+            this.server.onList = options.onList;
+            this.server.onLsub = options.onList;
         }
 
         this.server.listen(options.port, options.host, () => {
