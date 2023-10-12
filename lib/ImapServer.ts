@@ -79,6 +79,12 @@ export interface ImapServerOptions {
         session: ImapServerSession,
         callback: (err: Error | null, data?: Error | string | boolean) => void,
     ) => void;
+    onStore?: (
+        mailbox: number,
+        update: Update,
+        session: ImapServerSession,
+        callback: (err: Error | null, data?: any) => void,
+    ) => void;
 }
 
 export interface ImapServerSession {
@@ -219,6 +225,7 @@ export interface Update {
     value?: string[];
     unchangedSince?: number;
     action?: 'set' | 'add' | 'remove';
+    type: 'flags';
 }
 
 const defaultOptions: ImapServerOptions = {
@@ -301,6 +308,12 @@ export class ImapServer {
             ) => {
                 options!.onCopy!(mailbox, update, session, callback);
             };
+        }
+        if (options.onExpunge) {
+            this.server.onExpunge = options.onExpunge;
+        }
+        if (options.onStore) {
+            this.server.onStore = options.onStore;
         }
 
         this.server.listen(options.port, options.host, () => {

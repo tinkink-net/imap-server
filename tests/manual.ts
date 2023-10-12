@@ -337,6 +337,10 @@ const server = new ImapServer({
             destinationUid: [6],
         });
     },
+    onStore(mailbox, update, session, callback) {
+        console.log('onStore', mailbox, update);
+        callback(null);
+    },
 });
 
 /* setTimeout(() => {
