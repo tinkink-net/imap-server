@@ -8,7 +8,7 @@
 		"dev": "nodemon tests/manual.ts",
 		"build": "tsc",
 		"clean": "tsc --build --clean",
-		"pub": "pnpm run build && pnpm publish",
+		"pub": "pnpm run build && pnpm publish --access public",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
