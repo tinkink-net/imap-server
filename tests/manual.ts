@@ -29,7 +29,7 @@ const server = new ImapServer({
     onSelect(path, session, callback) {
         console.log('onSelect', path, session.id);
         callback(null, {
-            _id: '1',
+            _id: 1,
             // uidList: [1, 2, 3],
             uidList: [4, 5],
             // uidList: [1],
@@ -342,6 +342,8 @@ const server = new ImapServer({
         callback(null);
     },
 });
+
+server.listen();
 
 /* setTimeout(() => {
     server.close(() => {

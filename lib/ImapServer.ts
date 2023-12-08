@@ -1,6 +1,10 @@
 import './dirtyTricks';
 // @ts-ignore
 import { IMAPServer } from 'wildduck/imap-core';
+// @ts-ignore
+export { imapHandler } from 'wildduck/imap-core';
+// @ts-ignore
+export { default as parseMimeTree } from 'wildduck/imap-core/lib/indexer/parse-mime-tree';
 import { MemoryNotifier } from './MemoryNotifier';
 import { type Socket } from 'node:net';
 
@@ -14,6 +18,8 @@ export interface ImapServerOptions {
 
     secure?: boolean;
     secured?: boolean;
+    key?: string | Buffer;
+    cert?: string | Buffer;
     disableSTARTTLS?: boolean;
     ignoreSTARTTLS?: boolean;
     useProxy?: boolean;
@@ -51,7 +57,7 @@ export interface ImapServerOptions {
     onList?: (
         query: any,
         session: ImapServerSession,
-        callback: (err: Error | null, list: Folder[]) => void,
+        callback: (err: Error | null, list?: Folder[]) => void,
     ) => void;
     onMove?: (
         mailbox: number,
@@ -66,7 +72,7 @@ export interface ImapServerOptions {
         callback: (
             err: Error | null,
             success: boolean,
-            info: {
+            info?: {
                 uidValidity: number;
                 sourceUid: number[];
                 destinationUid: number[];
@@ -83,7 +89,37 @@ export interface ImapServerOptions {
         mailbox: number,
         update: Update,
         session: ImapServerSession,
-        callback: (err: Error | null, data?: any) => void,
+        callback: (
+            err: Error | null,
+            success?: string | boolean,
+            data?: number[],
+        ) => void,
+    ) => void;
+    onStatus?: (
+        path: string,
+        session: ImapServerSession,
+        callback: (
+            err: Error | null,
+            data?: {
+                messages: number;
+                uidNext: number;
+                uidValidity: number;
+                unseen: number;
+                highestModseq: number;
+            },
+        ) => void,
+    ) => void;
+    onAppend?: (
+        path: string,
+        flags: string[],
+        date: Date,
+        raw: Buffer,
+        session: ImapServerSession,
+        callback: (
+            err: Error | null,
+            success?: string | boolean,
+            data?: any,
+        ) => void,
     ) => void;
 }
 
@@ -94,7 +130,10 @@ export interface ImapServerSession {
     clientHostname: string;
     writeStream: WritableStream;
     socket: Socket;
-    // todo: imap-connection.js:L804
+    user: {
+        id: number;
+        [key: string]: any;
+    };
     formatResponse: (command: string, uid: number, data: any) => any;
     getQueryResponse: (query: QueryItem[], message: Message) => Value[];
 }
@@ -158,8 +197,10 @@ export interface Message {
 }
 
 export interface Mailbox {
-    _id: string;
+    _id: number;
     uidList: number[];
+    flags?: string[];
+    uidNext?: number;
     modifyIndex?: number;
     uidValidity?: number;
 }
@@ -250,12 +291,15 @@ const defaultOptions: ImapServerOptions = {
 
 export class ImapServer {
     server: IMAPServer;
+    private _port: number;
     constructor(options?: ImapServerOptions) {
         if (!options) {
             options = defaultOptions;
         } else {
             options = { ...defaultOptions, ...options };
         }
+        this._port = options.port!;
+
         this.server = new IMAPServer(options);
         this.server.notifier = new MemoryNotifier({});
 
@@ -282,22 +326,32 @@ export class ImapServer {
         if (options.onClose) {
             this.server.on('close', options.onClose);
         }
-        if (options.onAuth) {
-            this.server.onAuth = options.onAuth;
-        }
-        if (options.onSelect) {
-            this.server.onOpen = options.onSelect;
-        }
-        if (options.onFetch) {
-            this.server.onFetch = options.onFetch.bind(this);
-        }
-        if (options.onList) {
-            this.server.onList = options.onList;
-            this.server.onLsub = options.onList;
-        }
-        if (options.onMove) {
-            this.server.onMove = options.onMove;
-        }
+        (
+            [
+                'onAuth',
+                'onSelect',
+                'onFetch',
+                'onList',
+                'onMove',
+                'onExpunge',
+                'onStore',
+                'onStatus',
+                'onAppend',
+            ] as (keyof ImapServerOptions)[]
+        ).forEach((event) => {
+            if (options![event] && typeof options![event] === 'function') {
+                if (event === 'onSelect') {
+                    this.server.onOpen = options![event];
+                } else {
+                    this.server[event] = (options![event] as () => void).bind(
+                        this,
+                    );
+                }
+                if (event === 'onList') {
+                    this.server.onLsub = options![event];
+                }
+            }
+        });
         if (options.onCopy) {
             this.server.onCopy = (
                 connection: any,
@@ -309,16 +363,6 @@ export class ImapServer {
                 options!.onCopy!(mailbox, update, session, callback);
             };
         }
-        if (options.onExpunge) {
-            this.server.onExpunge = options.onExpunge;
-        }
-        if (options.onStore) {
-            this.server.onStore = options.onStore;
-        }
-
-        this.server.listen(options.port, options.host, () => {
-            console.log(`IMAP server listening on port ${options!.port}`);
-        });
     }
     getConnection(session: ImapServerSession) {
         for (const conn of this.server.connections) {
@@ -327,7 +371,14 @@ export class ImapServer {
             }
         }
     }
+    listen() {
+        this.server.listen(this._port, () => {
+            console.log(`IMAP server listening on port ${this._port}`);
+        });
+    }
     close(callback?: () => void) {
-        this.server.close(callback);
+        this.server.close(callback || (() => {}));
     }
 }
+
+export default ImapServer;
