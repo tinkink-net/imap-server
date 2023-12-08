@@ -2,8 +2,13 @@
 	"name": "@tinkink/imap-server",
 	"description": "Node.js IMAP server module",
 	"version": "1.0.0-alpha.1",
+	"type": "commonjs",
+	"main": "lib/ImapServer.js",
 	"scripts": {
 		"dev": "nodemon tests/manual.ts",
+		"build": "tsc",
+		"clean": "tsc --build --clean",
+		"pub": "pnpm run build && pnpm publish",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {

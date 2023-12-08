@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+tsconfig.json
+node_modules
+tests/*
+*.todo
+*.ts
