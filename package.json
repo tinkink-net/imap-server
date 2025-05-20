@@ -1,7 +1,7 @@
 {
 	"name": "@tinkink/imap-server",
 	"description": "Node.js IMAP server module",
-	"version": "1.0.0-alpha.3",
+	"version": "1.0.0-alpha.4",
 	"type": "commonjs",
 	"main": "lib/ImapServer.js",
 	"scripts": {
@@ -12,7 +12,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"wildduck": "^1.40.9"
+		"wildduck": "1.42.1"
 	},
 	"devDependencies": {
 		"@types/node": "^20.8.4",
